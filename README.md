@@ -4,8 +4,10 @@ please install python, pdbp and git (e.g. using micromamba). Then, in your termi
 ```
 brew install micromamba
 brew install git
+micromamba shell init --shell zsh      # then open a new terminal
 micromamba create -n debugging-exercise -c conda-forge python=3.14 -y
 micromamba activate debugging-exercise
+pip install pdbp
 git clone https://github.com/mbeavitt/debuggers
 cd debuggers
 python3 z.py ACTG TTGATCACTGCCGAT
