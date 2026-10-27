@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>On Debuggers</title>
+<style>
+  body { font: 16px/1.6 Georgia, serif; max-width: 40rem; margin: 2rem auto; padding: 0 16px; }
+  code, pre { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.9em; }
+  pre { background: #f3f3f3; padding: 0.6rem 0.8rem; overflow-x: auto; }
+  dt { margin-top: 1rem; }
+</style>
+</head>
+<body>
+
+<h1>On debuggers</h1>
+
+<p>They are my absolute favourite tool for understanding any codebase. You can simply run the code in the debugger and it can immediately transport you to the most interesting part of the code.</p>
+
+<p>For example, you will learn about bwa and other alignment tools in block 2; I frequently use a debugger to jump to the core algorithms in the source code to understand them. You might (or might not) be surprised to find out that most source code is not interesting. It's usually code to read and write files, parse options, catch bad input, report errors, print extra stuff if something goes wrong, etc. etc.... The actual important algorithms are often only a small fraction of a production codebase.</p>
+
+<h2>gdb and lldb</h2>
+
+<p>When you look up debugging tools, many people will be talking about "gdb" or "lldb". These are general purpose debuggers that can debug Python, C, Rust - pretty much any programming language. However, they are somewhat complicated to use for anything except C or C++. Many core bioinformatics tools (aligners like bwa, minimap, utilities like samtools, and so on) are written in C, so if you are interested in how they work, you may want to check out these debuggers at some point.</p>
+
+<h2>Python</h2>
+
+<p>For python, you have many choices of great debugging tools. You can use the built in debugger in VS Code (most other fully featured code editors have something similar if you don't use VS Code) but I find it unintuitive. Python comes packaged with "pdb" (<b>p</b>ython <b>d</b>e<b>b</b>ugger), but you may prefer "pdbp" (<b>p</b>ython <b>d</b>e<b>b</b>ugger <b>p</b>lus) which shows you which line of code you are on, colours the syntax, and various other nice features.</p>
+
+<p>To install it:</p>
+<pre>pip install pdbp</pre>
+
+<p>To use it, let's say you have some script <code>confusing_script.py</code>, you can start debugging like this:</p>
+<pre>python3 -m pdbp confusing_script.py</pre>
+
+<p>If the script has arguments, you can just use these as normal:</p>
+<pre>python3 -m pdbp confusing_script.py -k6 -o out.csv</pre>
+
+<h2>Commands</h2>
+
+<p>Once in the debugger, the most frequent commands I use are:</p>
+
+<dl>
+  <dt><code>next</code> (shortcut: <code>n</code>)</dt>
+  <dd>Evaluates the current line, jumps program pointer to next line.</dd>
+
+  <dt><code>step</code> (shortcut: <code>s</code>)</dt>
+  <dd>
+    Steps into the function on the current line. E.g., if the current line is:
+    <pre>output = some_function(x, y)</pre>
+    The "next" command will evaluate the function and go to the next line, while the "step" command will jump into the function and you can investigate how it works.
+    <p><strong>Beware!</strong> If you are importing functions from a package, e.g. numpy, many of them will be very complex. Some will mix python with other code (e.g., C++). If you try to "step" into these you might not find anything useful...</p>
+  </dd>
+
+  <dt><code>break &lt;break_position&gt;</code> (shortcut: <code>b</code>)</dt>
+  <dd>Automatically stops the program as soon as it reaches break_position. You can use it to break on a function e.g. <code>break some_function</code> or you can use it to break on a line e.g. <code>break 112</code> will stop the program on line 112.
+    <p>You can also add a condition, so the program only stops when the condition is true. E.g. <code>break some_function, x == 5</code> will only stop in some_function when x is 5, and <code>break 112, i &gt; 1000</code> will only stop on line 112 once i is above 1000. This is very useful inside loops, where you don't want to stop on every iteration.</p>
+  </dd>
+
+  <dt><code>continue</code> (shortcut: <code>c</code>)</dt>
+  <dd>The program will run as normal until it hits a breakpoint, or until the end of the program.</dd>
+
+  <dt><code>clear</code></dt>
+  <dd>Clears all the breakpoints you have set.</dd>
+
+  <dt><code>p &lt;expression&gt;</code> (short for print)</dt>
+  <dd>Prints the value of expression, e.g. <code>p output</code>. Usually you can just type the expression on its own, and pdbp will print it. The catch is when a variable has the same name as a debugger command (e.g. <code>n</code>, <code>s</code>, <code>c</code>, <code>b</code>): if the variable exists, typing <code>c</code> prints it, but if it doesn't exist (yet), typing <code>c</code> runs the continue command and the program runs off! <code>p c</code> is always safe: it prints the variable, or tells you it isn't defined.</dd>
+</dl>
+
+<p>You can also evaluate regular python code, e.g.:</p>
+<pre>output[10]</pre>
+<p>to print the 11th value of whatever is inside "output".</p>
+
+<p>For more, the <a href="https://github.com/mdmintz/pdbp">pdbp README</a> shows what pdbp looks like and its extra features, and the <a href="https://docs.python.org/3/library/pdb.html">official pdb documentation</a> has the full list of commands (they all work in pdbp too). If you prefer a tutorial, Real Python's <a href="https://realpython.com/python-debugging-pdb">Python Debugging With Pdb</a> is a good walkthrough.</p>
+
+<h1>Debugging exercises</h1>
+
+<p>These exercises use a simple O(n<sup>2</sup>) string matching algorithm implemented in Python (z.py).</p>
+
+<p>(optional) If you want a bit of background, you can read the first chapter of Dan Gusfield's textbook "Algorithms on Strings, Trees and Sequences"</p>
+
+<p>This is a git repository. If you have changed the code and want to reset everything, just run:</p>
+<pre>git restore .</pre>
+
+<h2>1. Getting started</h2>
+
+<p>First, run the script normally:</p>
+<pre>python3 z.py ACTG TTGATCACTGCCGAT</pre>
+
+<p>Have a look at the output. It should look like this:</p>
+<pre>Exact match found at index 6</pre>
+
+<p>Now run it again with the <code>--print-matrix</code> option:</p>
+<pre>python3 z.py --print-matrix ACTG TTGATCACTGCCGAT</pre>
+
+<p>This prints a matrix comparing every character of the query and search string (joined by a <code>$</code>) against every other character, with a 1 wherever they match:</p>
+<pre>  A C T G $ T T G A T C A C T G C C G A T
+A 1 0 0 0 0 0 0 0 1 0 0 1 0 0 0 0 0 0 1 0
+C 0 1 0 0 0 0 0 0 0 0 1 0 1 0 0 1 1 0 0 0
+T 0 0 1 0 0 1 1 0 0 1 0 0 0 1 0 0 0 0 0 1
+G 0 0 0 1 0 0 0 1 0 0 0 0 0 0 1 0 0 1 0 0
+$ 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+T 0 0 1 0 0 1 1 0 0 1 0 0 0 1 0 0 0 0 0 1
+T 0 0 1 0 0 1 1 0 0 1 0 0 0 1 0 0 0 0 0 1
+G 0 0 0 1 0 0 0 1 0 0 0 0 0 0 1 0 0 1 0 0
+A 1 0 0 0 0 0 0 0 1 0 0 1 0 0 0 0 0 0 1 0
+T 0 0 1 0 0 1 1 0 0 1 0 0 0 1 0 0 0 0 0 1
+C 0 1 0 0 0 0 0 0 0 0 1 0 1 0 0 1 1 0 0 0
+A 1 0 0 0 0 0 0 0 1 0 0 1 0 0 0 0 0 0 1 0
+C 0 1 0 0 0 0 0 0 0 0 1 0 1 0 0 1 1 0 0 0
+T 0 0 1 0 0 1 1 0 0 1 0 0 0 1 0 0 0 0 0 1
+G 0 0 0 1 0 0 0 1 0 0 0 0 0 0 1 0 0 1 0 0
+C 0 1 0 0 0 0 0 0 0 0 1 0 1 0 0 1 1 0 0 0
+C 0 1 0 0 0 0 0 0 0 0 1 0 1 0 0 1 1 0 0 0
+G 0 0 0 1 0 0 0 1 0 0 0 0 0 0 1 0 0 1 0 0
+A 1 0 0 0 0 0 0 0 1 0 0 1 0 0 0 0 0 0 1 0
+T 0 0 1 0 0 1 1 0 0 1 0 0 0 1 0 0 0 0 0 1
+Exact match found at index 6</pre>
+
+<p>Can you find the match in the matrix?</p>
+
+<p>Now start debugging by running the command:</p>
+<pre>python3 -m pdbp z.py ACTG TTGATCACTGCCGAT</pre>
+
+<p>Open the code in the debugger and get it to break on the z_naive function. use "continue" command to progress to the first time this function is called.</p>
+
+<p>What are the starting values of k and i the first time the function is called?</p>
+
+<h2>2. Conditional breakpoints</h2>
+
+<p>Run the same command as in exercise 1. The program finds a match at index 6.</p>
+
+<p>Stepping into <code>z_naive</code> for every <code>i</code> would take forever. Instead, set a breakpoint with a condition:</p>
+<pre>break z_naive, i == 11</pre>
+
+<p><code>continue</code>, and step through the loop. Why is it that <code>i == 11</code> gives a match at index 6 of the search string?</p>
+
+<h2>3. What is the <code>$</code> for?</h2>
+
+<p>Change this line:</p>
+<pre>concat_string = query + '$' + search</pre>
+<p>to:</p>
+<pre>concat_string = query + search</pre>
+
+<p>Run with <code>ACTG TTGATCACTGCCGAT</code> again. The match should be at index 6. What index do you get?</p>
+
+<p>Use the debugger to print <code>concat_string</code> and <code>z_array</code> and explain what went wrong.</p>
+
+<p>Now run with <code>ACTG TTACTGTT</code>. There is clearly a match at index 2, but why is the match missed?</p>
+
+<h2>4. Debugging a crash</h2>
+
+<p>In <code>z_naive</code>, change <code>&lt;</code> to <code>&lt;=</code>:</p>
+<pre>while i + k &lt;= len(seq) and seq[i + k] == seq[k]:</pre>
+
+<p>Try running it with <code>AC GAC</code> (or any other input you like). The program crashes if you run it on the command line, but try running it in the debugger - it will stop at the crash and let you inspect what happened! (very very useful)</p>
+
+<p>Now put the <code>&lt;</code> back, but swap the order of the two conditions:</p>
+<pre>while seq[i + k] == seq[k] and i + k &lt; len(seq):</pre>
+
+<p>Run it again. Does the order matter?</p>
+</body>
+</html>
