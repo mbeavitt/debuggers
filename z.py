@@ -21,10 +21,12 @@ def z_naive(seq, i):
 
 args = sys.argv[1:]
 
+# did the user ask to print the matrix?
 print_matrix = '--print-matrix' in args
 if print_matrix:
     args.remove('--print-matrix')
 
+# check that two positional arguments were passed to the program
 if len(args) != 2:
     print(f"Usage: z.py [--print-matrix] <query_string> <search_string>\n"
           f"\nexample:\n z.py ACTG TTGATCACTGCCGAT" )
