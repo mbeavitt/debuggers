@@ -12,7 +12,8 @@ If the first two print a version number and the last one prints nothing, you're 
 ```
 brew install micromamba
 brew install git
-micromamba shell init --shell zsh      # then open a new terminal
+micromamba shell init --shell zsh
+source ~/.zshrc
 micromamba create -n debugging-exercise -c conda-forge python=3.14 -y
 micromamba activate debugging-exercise
 pip install pdbp
